@@ -17,8 +17,9 @@ class ScreenshotManager:
         self.current_x = None
         self.current_y = None
         self.selection_canvas = None
-        self.last_selection = None  # Stores last selected area (x1, y1, x2, y2)
-        self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings_folder", "screenshot_settings.json")
+        self.last_selection = None  # Stores (x1, y1, x2, y2)
+        self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                                      "settings_folder", "screenshot_settings.json")
         self._load_last_selection()
 
     def _load_last_selection(self):
@@ -53,20 +54,30 @@ class ScreenshotManager:
                  text="Screenshot Options",
                  style="Heading.TLabel").pack(pady=20)
 
+        # Manual screenshot button
         ttk.Button(parent_frame,
                  text="1. Take Manual Screenshot",
                  command=self._take_manual_screenshot,
-                 style="Accent.TButton").pack(fill='x', pady=10)
+                 style="Accent.TButton").pack(fill='x', pady=5)
 
+        # Automatic screenshot button
         ttk.Button(parent_frame,
                  text="2. Take Automatic Screenshot",
                  command=self._take_auto_screenshot,
-                 style="Accent.TButton").pack(fill='x', pady=10)
+                 style="Accent.TButton").pack(fill='x', pady=5)
 
+        # Location screenshot button
         ttk.Button(parent_frame,
-                 text="3. Location Screenshot",
+                 text="3. Take Location Screenshot",
                  command=self._take_location_screenshot,
-                 style="Accent.TButton").pack(fill='x', pady=10)
+                 style="Accent.TButton").pack(fill='x', pady=5)
+
+        # Reselect location button (only shown if there's a previous selection)
+        if self.last_selection:
+            ttk.Button(parent_frame,
+                     text="4. Reselect Screenshot Location",
+                     command=self._reselect_screenshot_area,
+                     style="Accent.TButton").pack(fill='x', pady=5)
 
     def _return_to_main(self):
         self.root.event_generate("<<ReturnToMain>>")
@@ -74,19 +85,16 @@ class ScreenshotManager:
     def _take_manual_screenshot(self):
         """Handle manual screenshot with hidden main window"""
         self.root.withdraw()
-        self._create_selection_overlay(save_location=True)
+        self._create_selection_overlay(save_location=False)
 
     def _take_location_screenshot(self):
         """Take screenshot of previously selected area"""
         if not self.last_selection:
-            # If no previous selection, prompt to select area first
-            self.root.withdraw()
-            self._create_selection_overlay(save_location=True, is_location_screenshot=True)
+            self._reselect_screenshot_area()
             return
         
-        # Take screenshot of saved location
         self.root.withdraw()
-        time.sleep(0.2)  # Small delay to ensure window is hidden
+        time.sleep(0.2)
         
         try:
             x1, y1, x2, y2 = self.last_selection
@@ -97,7 +105,12 @@ class ScreenshotManager:
         finally:
             self.root.deiconify()
 
-    def _create_selection_overlay(self, save_location=False, is_location_screenshot=False):
+    def _reselect_screenshot_area(self):
+        """Handle reselection of screenshot area"""
+        self.root.withdraw()
+        self._create_selection_overlay(save_location=True)
+
+    def _create_selection_overlay(self, save_location=False):
         selection_win = tk.Toplevel(self.root)
         selection_win.attributes('-fullscreen', True)
         selection_win.attributes('-alpha', 0.3)
@@ -109,7 +122,7 @@ class ScreenshotManager:
         self.selection_canvas.bind("<ButtonPress-1>", self._on_press)
         self.selection_canvas.bind("<B1-Motion>", self._on_drag)
         self.selection_canvas.bind("<ButtonRelease-1>", 
-            lambda e: self._on_release(e, save_location, is_location_screenshot))
+            lambda e: self._on_release(e, save_location))
         selection_win.bind("<Escape>", lambda e: self._cancel_screenshot(selection_win))
 
     def _cancel_screenshot(self, window):
@@ -131,7 +144,7 @@ class ScreenshotManager:
             self.rect, self.start_x, self.start_y, 
             self.current_x, self.current_y)
 
-    def _on_release(self, event, save_location, is_location_screenshot):
+    def _on_release(self, event, save_location):
         self.selection_canvas.master.destroy()
         
         x1, y1 = min(self.start_x, self.current_x), min(self.start_y, self.current_y)
@@ -140,16 +153,17 @@ class ScreenshotManager:
         if save_location:
             self.last_selection = (x1, y1, x2, y2)
             self._save_last_selection()
+            # Refresh the menu to show the reselect button
+            self.root.after(100, self.show_screenshot_menu, self.root.children['!frame'])
         
         time.sleep(0.2)
         screenshot = pyautogui.screenshot(region=(x1, y1, x2-x1, y2-y1))
         
-        if is_location_screenshot:
-            self._save_screenshot(screenshot, "location")
+        if save_location:
+            # If we were just setting location, don't save the screenshot
+            self.root.deiconify()
         else:
             self._save_manual_screenshot(screenshot)
-        
-        self.root.deiconify()
 
     def _save_manual_screenshot(self, screenshot):
         """Show save dialog for manual screenshots"""
@@ -166,6 +180,7 @@ class ScreenshotManager:
         
         if file_path:
             screenshot.save(file_path)
+        self.root.deiconify()
 
     def _take_auto_screenshot(self):
         """Automatic screenshot with hidden main window"""
