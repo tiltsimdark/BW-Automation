@@ -1,0 +1,17 @@
+Creating BWID-8888
+  Create folder with BWID
+    Create another folder with Pictures
+
+Speedtest pictures
+  GUI with selection
+    NCM 1 2 3 + If reselected number, add 9 to the name.
+    NCM QoS 1 2 3 +
+    Upload FE speedtest with QoS
+
+Could we get Tool to find where speedtest?
+  Find speedtest logo?
+
+
+
+
+logo speedtest - -120 left -90 up
