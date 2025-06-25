@@ -13,5 +13,17 @@ Could we get Tool to find where speedtest?
 
 
 
+sorting word file
+  create word file 
+    ask for remaining info
+      pre installation pics
+      post install pics
+
+End goal
+  Create a word file with pre installation pictures
+  post installation pictures
+  based on static or not all speedtests
+  sim connection info
+    save with the customers name and BWID as word and pdf
 
 logo speedtest - -120 left -90 up
